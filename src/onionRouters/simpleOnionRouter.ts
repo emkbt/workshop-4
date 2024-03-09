@@ -7,8 +7,10 @@ export async function simpleOnionRouter(nodeId: number) {
   onionRouter.use(express.json());
   onionRouter.use(bodyParser.json());
 
-  // TODO implement the status route
-  // onionRouter.get("/status", (req, res) => {});
+  // Iimplement the status route
+  onionRouter.get("/status", (req, res) => {
+    res.send("live");
+  });
 
   const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
     console.log(
