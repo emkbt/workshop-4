@@ -31,7 +31,7 @@ export async function user(userId: number) {
   _user.post("/message", (req, res) => {
     const { message } = req.body;
     lastReceivedMessage = message;
-    res.json({ message: "Message received successfully." });
+    res.send("success");
   });
 
   const server = _user.listen(BASE_USER_PORT + userId, () => {
