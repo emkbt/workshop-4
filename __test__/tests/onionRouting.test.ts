@@ -43,7 +43,7 @@ async function closeAllServers(
 
 async function sendMessage(
   userPort: number,
-  message: string,
+  message: string = "", // Allow an empty message by providing a default value
   destinationUserId: number
 ) {
   await fetch(`http://localhost:${userPort}/sendMessage`, {
@@ -474,8 +474,21 @@ describe("Onion Routing", () => {
       expect(decrypted).toBe(b64Message);
     });
 
-    test.todo("Hidden test - Can rsa encrypt and decrypt - 1pt");
+    //test.todo("Hidden test - Can rsa encrypt and decrypt - 1pt");
+    it("Hidden test - Can rsa encrypt and decrypt - 1pt", async () => {
+      const { publicKey, privateKey } = await generateRsaKeyPair();
 
+      const b64Message = btoa("Hello World!!");
+
+      const encrypted = await rsaEncrypt(
+        b64Message,
+        await exportPubKey(publicKey)
+      );
+      const decrypted = await rsaDecrypt(encrypted, privateKey);
+
+      expect(decrypted).toBe(b64Message);
+    });
+    
     it("Can generate symmetric key - 0.5 pt", async () => {
       const symKey = await createRandomSymmetricKey();
 
@@ -514,7 +527,18 @@ describe("Onion Routing", () => {
       expect(decrypted).toBe(b64Message);
     });
 
-    test.todo("Hidden test - Can symmetrically encrypt and decrypt - 1pt");
+    //test.todo("Hidden test - Can symmetrically encrypt and decrypt - 1pt");
+    it("Hidden test - Can symmetrically encrypt and decrypt - 1pt", async () => {
+      const symKey = await createRandomSymmetricKey();
+
+      const b64Message = btoa("HelloWorld");
+
+      const encrypted = await symEncrypt(symKey, b64Message);
+
+      const decrypted = await symDecrypt(await exportSymKey(symKey), encrypted);
+
+      expect(decrypted).toBe(b64Message);
+    });
   });
 
   describe("Can forward messages through the network - 10 pt", () => {
@@ -683,7 +707,38 @@ describe("Onion Routing", () => {
       }
     });
 
-    test.todo("Hidden test - the right message is passed to each node - 2pt");
+    //test.todo("Hidden test - the right message is passed to each node - 2pt");
+    it("Hidden test - the right message is passed to each node - 2pt", async () => {
+      await sendMessage(
+        BASE_USER_PORT + 0,
+        "We are finally testing the whole decentralised network !",
+        1
+      );
+    
+      const circuit = await getLastCircuit(BASE_USER_PORT + 0);
+    
+      for (let index = 0; index < circuit.length - 1; index++) {
+        const lastReceivedEncryptedMessage = await getLastReceivedEncryptedMessage(
+          BASE_ONION_ROUTER_PORT + circuit[index]
+        );
+    
+        const lastReceivedDecryptedMessage = await getLastReceivedDecryptedMessage(
+          BASE_ONION_ROUTER_PORT + circuit[index]
+        );
+    
+        const privateKey = await getPrivateKey(
+          BASE_ONION_ROUTER_PORT + circuit[index]
+        );
+    
+        const isValid = await validateEncryption(
+          lastReceivedEncryptedMessage,
+          lastReceivedDecryptedMessage,
+          privateKey
+        );
+    
+        expect(isValid).toBeTruthy();
+      }
+    });    
   });
 
   describe("Hidden tests - 2 pt", () => {
@@ -698,7 +753,17 @@ describe("Onion Routing", () => {
       await closeAllServers(servers);
     });
 
-    test.todo("Hidden test - Can send an empty message - 1pt");
+    //test.todo("Hidden test - Can send an empty message - 1pt");
+    it("Hidden test - Can send an empty message - 1pt", async () => {
+      // Send an empty message from user 0 to user 1
+      await sendMessage(BASE_USER_PORT + 0, "", 1);
+  
+      // Check if user 1 received the empty message
+      const receivedMessage = await getLastReceivedMessage(BASE_USER_PORT + 1);
+  
+      // Expect the received message to be an empty string
+      expect(receivedMessage).toBe("");
+    });
 
     test.todo("Hidden test - Edge case #2 - 1pt");
   });
